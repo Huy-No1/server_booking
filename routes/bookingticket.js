@@ -12,8 +12,6 @@ const Schedule = require('../model/schedule');
 bookingRouter.get('/get-all-movie', (req, res, next) => {
   Movie.findAll()
     .then(movie => {
-      res.statusCode = 200;
-      res.setHeader('Accept', 'application/json');
       res.json(movie);
     }).catch(err => {
       next(err);
@@ -22,7 +20,6 @@ bookingRouter.get('/get-all-movie', (req, res, next) => {
 
 //get all the schedule
 bookingRouter.post('/get-all-time', (req, res, next) => {
-  console.log(req.body);
   Schedule.findAll({
     where: {
       MovieId: req.body.MovieId
@@ -50,26 +47,28 @@ bookingRouter.post('/get-movie', (req, res, next) => {
 
 //book ticket
 bookingRouter.post('/booking-ticket', (req, res, next) => {
-  Booking.create({
-
-    TicketId: req.body.TicketId,
-    CustomerId: req.body.CustomerId,
-    BookingDate: req.body.BookingDate
-  }).then(booking => {
-    res.send("booking successful");
-    Ticket.findOne({
-      where: {
-        Id: booking.TicketId
-      }
-    }).then(ticket => {
-      ticket.Available = 0;
-      ticket.save();
+  let arr= req.body.TicketId;
+  for(let i=0; i<arr.length; i++){
+    Booking.create({
+      TicketId: arr[i],
+      CustomerId: req.body.CustomerId,
+      BookingDate: req.body.BookingDate
+    }).then(booking => {
+      Ticket.findOne({
+        where: {
+          Id: arr[i]
+        }
+      }).then(ticket => {
+        ticket.Available = 0;
+        ticket.save();
+        res.json(ticket);
+      }).catch(err => next(err))
     }).catch(err => next(err))
-  }).catch(err => next(err))
+  }
 })
 
 //drop ticket
-bookingRouter.post('/drop-ticket', verifyToken, (req, res, next) => {
+bookingRouter.post('/drop-ticket', (req, res, next) => {
   Booking.destroy({
     where: {
       TicketId: req.body.TicketId,
@@ -77,11 +76,12 @@ bookingRouter.post('/drop-ticket', verifyToken, (req, res, next) => {
   }).then(booking => {
     Ticket.findOne({
       where: {
-        Id: booking.TicketId
+        Id: req.body.TicketId
       }
     }).then(ticket => {
-      ticket.Available = 0;
+      ticket.Available = 1;
       ticket.save();
+      res.send("OK");
     }).catch(err => next(err))
   }).catch(err => next(err));
 });
